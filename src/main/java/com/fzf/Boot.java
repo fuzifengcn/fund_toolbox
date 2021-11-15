@@ -105,23 +105,23 @@ public class Boot {
             System.out.println("fund code not found!");
             return;
         }
-        List<List<String>> data = new ArrayList<>();
+        List<FundInfo> data = new ArrayList<>();
         // 遍历基金代码
         for (String fundCode : fundCodes) {
-            List<String> row = new ArrayList<>();
+            FundInfo row = new FundInfo();
             // 查询 基金名称 当日净值
             String[] fundName = searchFundNameAndNAVByFundCode(fundCode);
 
-            row.add(fundCode);
-            row.add(fundName[0]);
-            row.add(fundName[1] );
+            row.setFundCode(fundCode);
+            row.setFundName(fundName[0]);
+            row.setCurrentNAV(fundName[1] );
             if ("0".equals(fundName[0])){
                 data.add(row);
                 continue;
             }
             // 计算上一个月的涨幅
             String monthNAV = searchLastMonthNAV(fundCode);
-            row.add(monthNAV);
+            row.setLastMonthNAV(monthNAV);
 
             Calendar instance = Calendar.getInstance();
             // 获取今年的年份 例如 ：2021
@@ -132,33 +132,33 @@ public class Boot {
             switch (month){
                 case 1: case 2: case 3:
                     // 1-3月 计算上年第四季度涨幅 下面依次类推
-                    row.add(searchFourthNAV(fundCode, (year-1) + ""));
+                    row.setLastQuarterlyNAV(searchFourthNAV(fundCode, (year-1) + ""));
                     break;
                 case 4: case 5: case 6:
-                    row.add(searchFirstNAV(fundCode, (year) + ""));
+                    row.setLastQuarterlyNAV(searchFirstNAV(fundCode, (year) + ""));
                     break;
                 case 7: case 8: case 9:
-                    row.add(searchSecondNAV(fundCode, (year) + ""));
+                    row.setLastQuarterlyNAV(searchSecondNAV(fundCode, (year) + ""));
                     break;
                 case 10: case 11:case 12:
-                    row.add(searchThirdNAV(fundCode, (year) + ""));
+                    row.setLastQuarterlyNAV(searchThirdNAV(fundCode, (year) + ""));
                     break;
 
             }
-            row.add(fundName[2]);
+            row.setCurrentDate(fundName[2]);
             data.add(row);
 
         }
-        List<String> row2  = new ArrayList<>();
-        row2.add(" ");
+        FundInfo row2  = new FundInfo();
+        row2.setFundCode(" ");
         data.add(row2);
-        List<String> row  = new ArrayList<>();
-        row.add("截至时间");
-        row.add(YYYY_MM_DD_HH_MM_SS.format(new Date()));
+        FundInfo row  = new FundInfo();
+        row.setFundCode("截至时间");
+        row.setFundName(YYYY_MM_DD_HH_MM_SS.format(new Date()));
         data.add(row);
         String format = new SimpleDateFormat("yyyy-MM-dd-HH_mm_ss").format(new Date());
         // 写入excel文件
-        EasyExcel.write(DATA_PATH_NAME.concat(format).concat(".xls")).head(TABLE_HEAD)
+        EasyExcel.write(DATA_PATH_NAME.concat(format).concat(".xlsx"),FundInfo.class)
                 .sheet("sheet1")
                 .doWrite(data);
     }
