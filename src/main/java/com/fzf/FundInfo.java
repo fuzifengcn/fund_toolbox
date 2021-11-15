@@ -9,9 +9,13 @@ import com.alibaba.excel.annotation.write.style.HeadStyle;
 import com.alibaba.excel.enums.BooleanEnum;
 import com.alibaba.excel.enums.poi.HorizontalAlignmentEnum;
 
+import static org.apache.poi.ss.usermodel.Font.ANSI_CHARSET;
+
 public class FundInfo {
 
     private static final short HEAD_FONT_SIZE = 11;
+
+
 
     @ExcelProperty("基金代码")
     @ColumnWidth(10)
