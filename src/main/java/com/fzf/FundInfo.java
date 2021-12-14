@@ -9,8 +9,6 @@ import com.alibaba.excel.annotation.write.style.HeadStyle;
 import com.alibaba.excel.enums.BooleanEnum;
 import com.alibaba.excel.enums.poi.HorizontalAlignmentEnum;
 
-import static org.apache.poi.ss.usermodel.Font.ANSI_CHARSET;
-
 public class FundInfo {
 
     private static final short HEAD_FONT_SIZE = 11;
@@ -18,7 +16,7 @@ public class FundInfo {
 
 
     @ExcelProperty("基金代码")
-    @ColumnWidth(10)
+    @ColumnWidth(15)
     @HeadStyle(horizontalAlignment = HorizontalAlignmentEnum.CENTER)
     @HeadFontStyle(fontHeightInPoints = HEAD_FONT_SIZE,bold = BooleanEnum.TRUE)
     @ContentStyle(horizontalAlignment = HorizontalAlignmentEnum.CENTER)
@@ -31,22 +29,36 @@ public class FundInfo {
     @ContentStyle(horizontalAlignment = HorizontalAlignmentEnum.CENTER)
     private String fundName;
 
-    @ColumnWidth(10)
+    @ColumnWidth(25)
+    @ExcelProperty("成立日期")
+    @HeadStyle(horizontalAlignment = HorizontalAlignmentEnum.CENTER)
+    @HeadFontStyle(fontHeightInPoints = HEAD_FONT_SIZE,bold = BooleanEnum.TRUE)
+    @ContentStyle(horizontalAlignment = HorizontalAlignmentEnum.CENTER)
+    private String creatAt;
+
+    @ColumnWidth(15)
     @ExcelProperty("当日净值")
     @HeadStyle(horizontalAlignment = HorizontalAlignmentEnum.CENTER)
     @HeadFontStyle(fontHeightInPoints = HEAD_FONT_SIZE,bold = BooleanEnum.TRUE)
     @ContentStyle(horizontalAlignment = HorizontalAlignmentEnum.CENTER)
     private String currentNAV;
 
-    @ColumnWidth(15)
-    @ExcelProperty("上月净值涨幅")
+    @ColumnWidth(20)
+    @ExcelProperty("当月净值涨幅（%）")
+    @HeadStyle(horizontalAlignment = HorizontalAlignmentEnum.CENTER)
+    @HeadFontStyle(fontHeightInPoints = HEAD_FONT_SIZE,bold = BooleanEnum.TRUE)
+    @ContentStyle(horizontalAlignment = HorizontalAlignmentEnum.CENTER)
+    private String currentMonthNAV;
+
+    @ColumnWidth(20)
+    @ExcelProperty("上月净值涨幅（%）")
     @HeadStyle(horizontalAlignment = HorizontalAlignmentEnum.CENTER)
     @HeadFontStyle(fontHeightInPoints = HEAD_FONT_SIZE,bold = BooleanEnum.TRUE)
     @ContentStyle(horizontalAlignment = HorizontalAlignmentEnum.CENTER)
     private String lastMonthNAV;
 
-    @ColumnWidth(15)
-    @ExcelProperty("上季度净值涨幅")
+    @ColumnWidth(20)
+    @ExcelProperty("上季度净值涨幅（%）")
     @HeadStyle(horizontalAlignment = HorizontalAlignmentEnum.CENTER)
     @HeadFontStyle(fontHeightInPoints = HEAD_FONT_SIZE,bold = BooleanEnum.TRUE)
     @ContentStyle(horizontalAlignment = HorizontalAlignmentEnum.CENTER)
@@ -106,5 +118,21 @@ public class FundInfo {
 
     public void setCurrentDate(String currentDate) {
         this.currentDate = currentDate;
+    }
+
+    public String getCurrentMonthNAV() {
+        return currentMonthNAV;
+    }
+
+    public void setCurrentMonthNAV(String currentMonthNAV) {
+        this.currentMonthNAV = currentMonthNAV;
+    }
+
+    public String getCreatAt() {
+        return creatAt;
+    }
+
+    public void setCreatAt(String creatAt) {
+        this.creatAt = creatAt;
     }
 }

@@ -5,6 +5,11 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.lang3.StringUtils;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+import org.omg.CORBA.OMGVMCID;
 
 import java.io.*;
 import java.math.BigDecimal;
@@ -30,6 +35,8 @@ public class Boot {
 
     //查询历史净值的url
     static final String SEARCH_FUND_NAV_URL = "https://api.fund.eastmoney.com/f10/lsjz";
+
+    static final String FUND_INFO_PAGE_URL = "http://fund.eastmoney.com/";
 
     static final Map<String, String> HEADER = new HashMap<>();
 
@@ -120,6 +127,9 @@ public class Boot {
                 data.add(row);
                 continue;
             }
+            // 计算当月的涨幅
+            String currentMonthNAV = searchCurrentMonthNAV(fundCode);
+            row.setCurrentMonthNAV(currentMonthNAV);
             // 计算上一个月的涨幅
             String monthNAV = searchLastMonthNAV(fundCode);
             row.setLastMonthNAV(monthNAV);
@@ -147,6 +157,7 @@ public class Boot {
 
             }
             row.setCurrentDate(fundName[2]);
+            row.setCreatAt(getFoundInfo(fundCode));
             data.add(row);
 
         }
@@ -160,6 +171,7 @@ public class Boot {
         String format = new SimpleDateFormat("yyyy-MM-dd-HH_mm_ss").format(new Date());
         // 写入excel文件
         EasyExcel.write(DATA_PATH_NAME.concat(format).concat(".xlsx"),FundInfo.class)
+                .registerWriteHandler(new MyCellStyleHandler())
                 .sheet("sheet1")
                 .doWrite(data);
     }
@@ -329,5 +341,18 @@ public class Boot {
         return s.split(",");
     }
 
+    private static String getFoundInfo(String fundCode){
+
+        String url = FUND_INFO_PAGE_URL.concat(fundCode).concat(".html").concat("?spm=search");
+        String  htmlStr= OkHttpUtils.get(url, null);
+        Document document = Jsoup.parse(htmlStr);
+        Elements infoOfFund = document.getElementsByClass("infoOfFund");
+        Element element = infoOfFund.get(0);
+        Elements trs = element.getElementsByTag("tr");
+        Element tr = trs.get(1);
+        Element td = tr.getElementsByTag("td").get(0);
+        return td.text().split("：")[1];
+
+    }
 
 }
