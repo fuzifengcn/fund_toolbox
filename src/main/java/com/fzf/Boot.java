@@ -27,17 +27,12 @@ public class Boot {
     static final String FUND_CODE_FILE_NAME = CURRENT_PATH.concat(File.separator).concat("fundCodes.txt");
     static final String LOG_FILE_NAME = LOG_PATH_NAME.concat("log.txt");
 
-    // 查询基金名称的url
-    static final String SEARCH_FUND_NAME_URL = "https://fundsuggest.eastmoney.com/FundSearch/api/FundSearchAPI.ashx";
-
     //查询历史净值的url
     static final String SEARCH_FUND_NAV_URL = "https://api.fund.eastmoney.com/f10/lsjz";
 
-    static final String FUND_INFO_PAGE_URL = "http://fund.eastmoney.com/";
+    static final String FUND_INFO_PAGE_URL = "https://fund.eastmoney.com/";
 
     static final Map<String, String> HEADER = new HashMap<>();
-
-    static  final  List<List<String>> TABLE_HEAD = new ArrayList<>();
 
     static Document FUND_INFO_HTML_DOCUMENT;
 
@@ -45,54 +40,60 @@ public class Boot {
 
     static int CURRENT_YEAR;
     static int CURRENT_MONTH;
+    static String LAST_QUARTERLY_START;
+    static String LAST_QUARTERLY_END;
+    static String LAST_MONTH_START;
+    static String CURRENT_MONTH_START;
+    static String LAST_MONTH_END;
 
     static FundInfo FUND_INFO;
-
-    // 区分季度
-    static final String FIRST_START = "-01-01";
-    static final String FIRST_END = "-03-31";
-    static final String SECOND_START = "-04-01";
-    static final String SECOND_END = "-06-30";
-    static final String THIRD_START = "-07-01";
-    static final String THIRD_END = "-09-30";
-    static final String FOURTH_START = "-10-01";
-    static final String FOURTH_END = "-12-31";
+    static final String[] QUARTERLY_START_MAPPER = new String[4];
+    static final String[] QUARTERLY_END_MAPPER = new String[4];
     static final List<FundInfo> ROWS = new ArrayList<>();
+    static final List<JSONObject> QUARTERLY_DATA_LIST = new ArrayList<>();
+    static final List<JSONObject> LAST_MONTH_DATA_LIST = new ArrayList<>();
+    static final List<JSONObject> CURRENT_MONTH_DATA_LIST = new ArrayList<>();
+    static String[] FUND_CODE_LIST;
     // 获取历史净值http请求头 和 excel表头
     static {
         HEADER.put("Referer", "https://fundf10.eastmoney.com/");
-        TABLE_HEAD.add(Collections.singletonList("基金代码"));
-        TABLE_HEAD.add(Collections.singletonList("基金名称"));
-        TABLE_HEAD.add(Collections.singletonList("当日净值"));
-        TABLE_HEAD.add(Collections.singletonList("上一完整自然月涨幅"));
-        TABLE_HEAD.add(Collections.singletonList("上一完整季度涨幅"));
-        TABLE_HEAD.add(Collections.singletonList("当日净值日期"));
     }
 
 
-    //启动类 程序入口
-    public static void main(String[] args){
-        try {
-            init();
-            System.out.println(YYYY_MM_DD_HH_MM_SS.format(new Date()) + " start");
-            boot();
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-        System.out.println(YYYY_MM_DD_HH_MM_SS.format(new Date()) + " end");
-
+    //init method
+    private static void initTime() {
+        Calendar instance = Calendar.getInstance();
+        CURRENT_YEAR = instance.get(Calendar.YEAR);
+        CURRENT_MONTH = instance.get(Calendar.MONTH);
+        QUARTERLY_START_MAPPER[0] = (CURRENT_YEAR - 1) + "-10-01";
+        QUARTERLY_START_MAPPER[1] = CURRENT_YEAR + "-01-01";
+        QUARTERLY_START_MAPPER[2] = CURRENT_YEAR + "-04-01";
+        QUARTERLY_START_MAPPER[3] = CURRENT_YEAR + "-07-01";
+        QUARTERLY_END_MAPPER[0] = (CURRENT_YEAR - 1) + "-12-31";
+        QUARTERLY_END_MAPPER[1] = CURRENT_YEAR + "-03-31";
+        QUARTERLY_END_MAPPER[2] = CURRENT_YEAR + "-06-30";
+        QUARTERLY_END_MAPPER[3] = CURRENT_YEAR + "-09-30";
+        LAST_QUARTERLY_START = QUARTERLY_START_MAPPER[CURRENT_MONTH / 3];
+        LAST_QUARTERLY_END = QUARTERLY_END_MAPPER[CURRENT_MONTH / 3];
+        instance = Calendar.getInstance();
+        instance.set(Calendar.DAY_OF_MONTH, 1);
+        CURRENT_MONTH_START = SIMPLE_DATE_FORMAT.format(instance.getTime());
+        instance = Calendar.getInstance();
+        instance.add(Calendar.MONTH, -1);
+        instance.set(Calendar.DAY_OF_MONTH, 1);
+        LAST_MONTH_START = SIMPLE_DATE_FORMAT.format(instance.getTime());
+        instance = Calendar.getInstance();
+        instance.set(Calendar.DAY_OF_MONTH, 0);
+        LAST_MONTH_END = SIMPLE_DATE_FORMAT.format(instance.getTime());
     }
-
     // 初始化系统设置  与业务不相关
-    private static void init() {
-
-
+    private static void initLogConfig() {
         File dataPath = new File(DATA_PATH_NAME);
-        if(!dataPath.exists()){
+        if (!dataPath.exists()) {
             dataPath.mkdirs();
         }
         File file = new File(LOG_PATH_NAME);
-        if(!file.exists()){
+        if (!file.exists()) {
             file.mkdirs();
         }
         try {
@@ -102,26 +103,87 @@ public class Boot {
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
-        Calendar instance = Calendar.getInstance();
-        // 获取今年的年份 例如 ：2021
-        CURRENT_YEAR = instance.get(Calendar.YEAR);
-        CURRENT_MONTH = instance.get(Calendar.MONTH);
+
     }
+    // 初始化历史净值数据并分组
+    private static void initBaseFundInfo() {
+        if(LAST_MONTH_DATA_LIST.size()>0){
+            QUARTERLY_DATA_LIST.clear();
+            LAST_MONTH_DATA_LIST.clear();
+            CURRENT_MONTH_DATA_LIST.clear();
+        }
+
+        String url = FUND_INFO_PAGE_URL.concat(FUND_CODE).concat(".html").concat("?spm=search");
+        String htmlStr = OkHttpUtils.get(url, null);
+        FUND_INFO_HTML_DOCUMENT = Jsoup.parse(htmlStr);
+
+
+        Calendar start = Calendar.getInstance();
+        Calendar end = Calendar.getInstance();
+        try {
+            start.setTime(SIMPLE_DATE_FORMAT.parse(LAST_QUARTERLY_START));
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        end.setTime(new Date());
+
+        int reduceDay = end.get(Calendar.DAY_OF_YEAR) - start.get(Calendar.DAY_OF_YEAR);
+        Map<String, String> param = new HashMap<>();
+        param.put("fundCode", FUND_CODE);
+        param.put("pageSize", reduceDay + "");
+        param.put("pageIndex", "1");
+        param.put("startDate", LAST_QUARTERLY_START);
+        param.put("endDate", SIMPLE_DATE_FORMAT.format(new Date()));
+        String responseStr = OkHttpUtils.get(SEARCH_FUND_NAV_URL, param, HEADER);
+        if (StringUtils.isNotBlank(responseStr)) {
+            JSONArray jsonArray = JSON.parseObject(responseStr).getJSONObject("Data").getJSONArray("LSJZList");
+            if (jsonArray != null && jsonArray.size() > 0) {
+                for (int i = 0; i < jsonArray.size(); i++) {
+                    JSONObject jsonObject = jsonArray.getJSONObject(i);
+                    String dateStr = jsonObject.getString("FSRQ");
+                    if (LAST_QUARTERLY_START.compareTo(dateStr) <= 0
+                            && LAST_QUARTERLY_END.compareTo(dateStr) >= 0) {
+                        QUARTERLY_DATA_LIST.add(jsonObject);
+                    }
+                    if (LAST_MONTH_START.compareTo(dateStr) <= 0
+                            && LAST_MONTH_END.compareTo(dateStr) >= 0) {
+                        LAST_MONTH_DATA_LIST.add(jsonObject);
+                    }
+
+                    if (CURRENT_MONTH_START.compareTo(dateStr) <= 0) {
+                        CURRENT_MONTH_DATA_LIST.add(jsonObject);
+                    }
+
+                }
+
+            }
+        }
+    }
+
+
+    //启动类 程序入口
+    public static void main(String[] args) {
+        try {
+            initLogConfig();
+            System.out.println(YYYY_MM_DD_HH_MM_SS.format(new Date()) + " start");
+            initTime();
+            initFundCodes();
+            boot();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println(YYYY_MM_DD_HH_MM_SS.format(new Date()) + " end");
+
+    }
+
+
+
 
 
     // 业务启动类  所有流程在此类完成
     private static void boot() {
-        String[] fundCodes ;
-        try {
-            // 读取 fundCode中的基金代码
-            fundCodes = readFundCodeFromFile();
-        } catch (IOException e) {
-            System.out.println("fund code not found!");
-            return;
-        }
-
         // 遍历基金代码
-        for (String fundCode : fundCodes) {
+        for (String fundCode : FUND_CODE_LIST) {
             FUND_CODE = fundCode;
             FUND_INFO = new FundInfo(fundCode);
             initBaseFundInfo();
@@ -135,172 +197,92 @@ public class Boot {
             ROWS.add(FUND_INFO);
 
         }
-        FundInfo row2  = new FundInfo();
+        FundInfo row2 = new FundInfo();
         row2.setFundCode(" ");
         ROWS.add(row2);
-        FundInfo row  = new FundInfo();
+        FundInfo row = new FundInfo();
         row.setFundCode("截至时间");
         row.setFundName(YYYY_MM_DD_HH_MM_SS.format(new Date()));
         ROWS.add(row);
         String format = new SimpleDateFormat("yyyy-MM-dd-HH_mm_ss").format(new Date());
         // 写入excel文件
-        EasyExcel.write(DATA_PATH_NAME.concat(format).concat(".xlsx"),FundInfo.class)
+        EasyExcel.write(DATA_PATH_NAME.concat(format).concat(".xlsx"), FundInfo.class)
                 .registerWriteHandler(new MyCellStyleHandler())
                 .sheet("sheet1")
                 .doWrite(ROWS);
     }
+    // 获取成立日期
+    private static void setCreateDate() {
+        Elements infoOfFund = FUND_INFO_HTML_DOCUMENT.getElementsByClass("infoOfFund");
+        Element element = infoOfFund.get(0);
+        Elements trs = element.getElementsByTag("tr");
+        Element tr = trs.get(1);
+        Element td = tr.getElementsByTag("td").get(0);
+        FUND_INFO.setCreatAt(td.text().split("：")[1]);
+    }
+    // 获取基金净值
+    private static void setCurrentNAV() {
 
+        Elements infoOfFund = FUND_INFO_HTML_DOCUMENT.getElementsByClass("dataItem02");
+        if (infoOfFund.size() > 0) {
+            Element element = infoOfFund.get(0);
+            Element p = element.getElementsByTag("dt").get(0).getElementsByTag("p").get(0);
+            Elements span = p.getElementsByTag("span");
+            span.remove();
+            FUND_INFO.setCurrentDate(p.text().replaceAll("\\)", ""));
+            Element nav = element.getElementsByTag("dd").get(0).getElementsByTag("span").get(0);
+            FUND_INFO.setCurrentNAV(nav.text());
+        } else {
+            FUND_INFO.setCurrentNAV("基金异常");
+        }
+    }
+    // 获取基金名称
+    private static void setFundName() {
+        Elements infoOfFund = FUND_INFO_HTML_DOCUMENT.getElementsByClass("fundDetail-tit");
+        Element div = infoOfFund.get(0).getElementsByTag("div").get(0);
+        div.getElementsByTag("span").remove();
+        FUND_INFO.setFundName(div.text());
+    }
+
+    // 计算上季度涨幅
     private static void setLastQuarterlyNAV() {
-        switch (CURRENT_MONTH){
-            case 1: case 2: case 3:
-                setFourthNAV();
-                break;
-            case 4: case 5: case 6:
-                setFirstNAV();
-                break;
-            case 7: case 8: case 9:
-               setSecondNAV();
-                break;
-            case 10: case 11: case 12:
-                setThirdNAV();
-                break;
-        }
-    }
-
-    // 计算第1季度的涨幅
-    public static void setFirstNAV() {
-
-        try {
-            FUND_INFO.setLastQuarterlyNAV(searchFundNAV(SIMPLE_DATE_FORMAT.parse(CURRENT_YEAR+ "" + FIRST_START), SIMPLE_DATE_FORMAT.parse(CURRENT_YEAR  + FIRST_END)));
-        } catch (ParseException e) {
-            e.printStackTrace();
-            FUND_INFO.setLastQuarterlyNAV("-");
-        }
-    }
-    // 计算第2季度的涨幅
-    public static void setSecondNAV() {
-
-        try {
-            FUND_INFO.setLastQuarterlyNAV(searchFundNAV(SIMPLE_DATE_FORMAT.parse(CURRENT_YEAR + SECOND_START), SIMPLE_DATE_FORMAT.parse(CURRENT_YEAR + SECOND_END)));
-        } catch (ParseException e) {
-            e.printStackTrace();
-            FUND_INFO.setLastQuarterlyNAV("-");
-        }
-    }
-    // 计算第3季度的涨幅
-    public static void setThirdNAV() {
-
-        try {
-           FUND_INFO.setLastQuarterlyNAV(searchFundNAV(SIMPLE_DATE_FORMAT.parse(CURRENT_YEAR + THIRD_START), SIMPLE_DATE_FORMAT.parse(CURRENT_YEAR + THIRD_END)));
-        } catch (ParseException e) {
-            e.printStackTrace();
-            FUND_INFO.setLastQuarterlyNAV("-");
-        }
-    }
-    // 计算第4季度的涨幅
-    public static void setFourthNAV() {
-
-        try {
-            FUND_INFO.setLastQuarterlyNAV(searchFundNAV(SIMPLE_DATE_FORMAT.parse((CURRENT_YEAR-1) + FOURTH_START), SIMPLE_DATE_FORMAT.parse((CURRENT_YEAR-1) + FOURTH_END)));
-        } catch (ParseException e) {
-            e.printStackTrace();
-            FUND_INFO.setLastQuarterlyNAV("-");
-        }
+        FUND_INFO.setLastQuarterlyNAV(getNav(QUARTERLY_DATA_LIST));
     }
 
     // 计算本月涨幅
     public static void setCurrentMonthNAV() {
-        // 本月起始
-        Calendar thisMonthFirstDateCal = Calendar.getInstance();
-        thisMonthFirstDateCal.set(Calendar.DAY_OF_MONTH, 1);
-
-        // 本月末尾
-        Calendar thisMonthEndDateCal = Calendar.getInstance();
-        thisMonthEndDateCal.set(Calendar.DAY_OF_MONTH, thisMonthEndDateCal.getActualMaximum(Calendar.DAY_OF_MONTH));
-
-        FUND_INFO.setCurrentMonthNAV( searchFundNAV(thisMonthFirstDateCal.getTime(), thisMonthEndDateCal.getTime()));
+        FUND_INFO.setCurrentMonthNAV(getNav(CURRENT_MONTH_DATA_LIST));
     }
 
     // 计算上一个月涨幅
     public static void setLastMonthNAV() {
-        Calendar start  = Calendar.getInstance();
-        start.add(Calendar.MONTH,-1);
-        start.set(Calendar.DAY_OF_MONTH,1);
-        Calendar end  = Calendar.getInstance();
-        end.set(Calendar.DAY_OF_MONTH,0);
-        FUND_INFO.setLastMonthNAV(searchFundNAV(start.getTime(), end.getTime()));
+        FUND_INFO.setLastMonthNAV(getNav(LAST_MONTH_DATA_LIST));
     }
 
-
-//    计算两个日期之间的涨幅
-    public static String searchFundNAV(Date startDate, Date endDate) {
-        String startDateStr = SIMPLE_DATE_FORMAT.format(startDate);
-        String endDateStr = SIMPLE_DATE_FORMAT.format(endDate);
-        Calendar start = Calendar.getInstance();
-        start.setTime(startDate);
-        Calendar end = Calendar.getInstance();
-        end.setTime(endDate);
-
-        int reduceDay = end.get(Calendar.DAY_OF_YEAR) - start.get(Calendar.DAY_OF_YEAR);
-        Map<String, String> param = new HashMap<>();
-        param.put("fundCode", FUND_CODE);
-        param.put("pageSize", reduceDay + "");
-        param.put("pageIndex", "1");
-        param.put("startDate", startDateStr);
-        param.put("endDate", endDateStr);
-        // 发动网络请求查询历史净值列表
-        String responseStr = OkHttpUtils.get(SEARCH_FUND_NAV_URL, param, HEADER);
-        if (StringUtils.isNotBlank(responseStr)) {
-            JSONArray jsonArray = JSON.parseObject(responseStr).getJSONObject("Data").getJSONArray("LSJZList");
-            if (jsonArray == null || jsonArray.size() < 1) {
-                return "-";
-            }
-            JSONObject max = jsonArray.getJSONObject(0);
-            JSONObject min = jsonArray.getJSONObject(jsonArray.size() - 1);
+    private static void initFundCodes(){
+        try {
+            // 读取 fundCode中的基金代码
+            FUND_CODE_LIST = readFundCodeFromFile();
+        } catch (IOException e) {
+            System.out.println("fund code not found!");
+        }
+    }
+    // 计算涨幅
+    private static String getNav(List<JSONObject> list){
+        if (list.size() > 0) {
+            JSONObject max = list.get(0);
+            JSONObject min = list.get(list.size() - 1);
             BigDecimal maxNAV = new BigDecimal(max.getString("DWJZ"));
             BigDecimal minNAV = new BigDecimal(min.getString("DWJZ"));
             // 计算涨幅
-            BigDecimal subtract = maxNAV.subtract(minNAV)
+            BigDecimal nav = maxNAV.subtract(minNAV)
                     .divide(minNAV, 5, BigDecimal.ROUND_DOWN)
                     .multiply(new BigDecimal(100))
                     .setScale(2, BigDecimal.ROUND_DOWN);
-            return subtract.toString();
+            return nav.toString();
+        }else{
+            return "-";
         }
-        return "error";
-
-    }
-
-    // https://fundsuggest.eastmoney.com/FundSearch/api/FundSearchAPI.ashx?m=1&key=002190&_=1636467561122
-    // 查询基金名称和当日净值  返回值  第一个位置：基金名  第二位置：基金当日净值  第三个位置：净值日期
-    @Deprecated
-    private static String[] searchFundNameAndNAVByFundCode(String fundCode) {
-
-        if (StringUtils.isBlank(fundCode)) {
-            return new String[]{"", "", ""};
-        }
-        Map<String, String> param = new HashMap<>();
-        param.put("m", "1");
-        param.put("key", fundCode);
-        String responseStr = OkHttpUtils.get(SEARCH_FUND_NAME_URL, param);
-        if (StringUtils.isNotBlank(responseStr)) {
-            JSONObject jsonObject = JSONObject.parseObject(responseStr);
-            JSONArray datas = jsonObject.getJSONArray("Datas");
-            if (datas.size() > 0) {
-                JSONObject fundInfo = datas.getJSONObject(0);
-                if (fundCode.equals(fundInfo.getString("CODE")) && "700".equals(fundInfo.getString("CATEGORY"))) {
-                    JSONObject fundBaseInfo = fundInfo.getJSONObject("FundBaseInfo");
-                    String currentDateStr = SIMPLE_DATE_FORMAT.format(new Date());
-                    if (fundBaseInfo.getString("FSRQ").equals(currentDateStr)) {
-                        return new String[]{fundInfo.getString("NAME"), fundBaseInfo.getString("DWJZ"),""};
-                    }
-                    return new String[]{fundInfo.getString("NAME"), fundBaseInfo.getString("DWJZ"),fundBaseInfo.getString("FSRQ")};
-                }
-            }
-
-        }
-
-        return new String[]{"0", "fund code not found : ".concat(fundCode),""};
-
     }
 
     // 读取基金代码从文件中
@@ -332,39 +314,7 @@ public class Boot {
         return s.split(",");
     }
 
-    private static void setCreateDate(){
 
-        Elements infoOfFund = FUND_INFO_HTML_DOCUMENT.getElementsByClass("infoOfFund");
-        Element element = infoOfFund.get(0);
-        Elements trs = element.getElementsByTag("tr");
-        Element tr = trs.get(1);
-        Element td = tr.getElementsByTag("td").get(0);
-        FUND_INFO.setCreatAt(td.text().split("：")[1]);
 
-    }
-    private static void setCurrentNAV(){
-        Elements infoOfFund = FUND_INFO_HTML_DOCUMENT.getElementsByClass("dataItem02");
-        Element element = infoOfFund.get(0);
-        Element p = element.getElementsByTag("dt").get(0).getElementsByTag("p").get(0);
-        Elements span = p.getElementsByTag("span");
-        span.remove();
-        FUND_INFO.setCurrentDate(p.text().replaceAll("\\)",""));
-
-        Element nav = element.getElementsByTag("dd").get(0).getElementsByTag("span").get(0);
-        FUND_INFO.setCurrentNAV(nav.text());
-
-    }
-    private static void setFundName(){
-        Elements infoOfFund = FUND_INFO_HTML_DOCUMENT.getElementsByClass("fundDetail-tit");
-        Element div = infoOfFund.get(0).getElementsByTag("div").get(0);
-        div.getElementsByTag("span").remove();
-        FUND_INFO.setFundName(div.text());
-    }
-
-    private static void initBaseFundInfo(){
-        String url = FUND_INFO_PAGE_URL.concat(FUND_CODE).concat(".html").concat("?spm=search");
-        String  htmlStr= OkHttpUtils.get(url, null);
-        FUND_INFO_HTML_DOCUMENT = Jsoup.parse(htmlStr);
-    }
 
 }
