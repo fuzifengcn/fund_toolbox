@@ -15,7 +15,7 @@ public class FundInfo {
     FundInfo(String fundCode){
         this.fundCode = fundCode;
     }
-
+    FundInfo(){}
     @ExcelProperty("基金代码")
     @ColumnWidth(15)
     @HeadStyle(horizontalAlignment = HorizontalAlignmentEnum.CENTER)

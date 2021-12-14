@@ -44,6 +44,7 @@ public class Boot {
     static String FUND_CODE;
 
     static int CURRENT_YEAR;
+    static int CURRENT_MONTH;
 
     static FundInfo FUND_INFO;
 
@@ -56,7 +57,7 @@ public class Boot {
     static final String THIRD_END = "-09-30";
     static final String FOURTH_START = "-10-01";
     static final String FOURTH_END = "-12-31";
-
+    static final List<FundInfo> ROWS = new ArrayList<>();
     // 获取历史净值http请求头 和 excel表头
     static {
         HEADER.put("Referer", "https://fundf10.eastmoney.com/");
@@ -79,7 +80,6 @@ public class Boot {
             e.printStackTrace();
         }
         System.out.println(YYYY_MM_DD_HH_MM_SS.format(new Date()) + " end");
-
 
     }
 
@@ -105,13 +105,12 @@ public class Boot {
         Calendar instance = Calendar.getInstance();
         // 获取今年的年份 例如 ：2021
         CURRENT_YEAR = instance.get(Calendar.YEAR);
+        CURRENT_MONTH = instance.get(Calendar.MONTH);
     }
 
 
     // 业务启动类  所有流程在此类完成
     private static void boot() {
-
-
         String[] fundCodes ;
         try {
             // 读取 fundCode中的基金代码
@@ -120,81 +119,66 @@ public class Boot {
             System.out.println("fund code not found!");
             return;
         }
-        List<FundInfo> data = new ArrayList<>();
+
         // 遍历基金代码
         for (String fundCode : fundCodes) {
-            FundInfo row = new FundInfo(fundCode);
-            // 查询 基金名称 当日净值
-            String[] fundName = searchFundNameAndNAVByFundCode(fundCode);
-
-            row.setFundCode(fundCode);
-            row.setFundName(fundName[0]);
-            row.setCurrentNAV(fundName[1] );
-            if ("0".equals(fundName[0])){
-                data.add(row);
-                continue;
-            }
-            // 计算当月的涨幅
-            String currentMonthNAV = searchCurrentMonthNAV(fundCode);
-            row.setCurrentMonthNAV(currentMonthNAV);
-            // 计算上一个月的涨幅
-            String monthNAV = searchLastMonthNAV(fundCode);
-            row.setLastMonthNAV(monthNAV);
-
-            Calendar instance = Calendar.getInstance();
-            // 获取今年的年份 例如 ：2021
-            int year = instance.get(Calendar.YEAR);
-            // 获取当月的月份
-            int month = instance.get(Calendar.MONTH);
-            // 判断当前月份是第几季度
-            switch (month){
-                case 1: case 2: case 3:
-                    // 1-3月 计算上年第四季度涨幅 下面依次类推
-                    row.setLastQuarterlyNAV(searchFourthNAV(fundCode, (year-1) + ""));
-                    break;
-                case 4: case 5: case 6:
-                    row.setLastQuarterlyNAV(searchFirstNAV(fundCode, (year) + ""));
-                    break;
-                case 7: case 8: case 9:
-                    row.setLastQuarterlyNAV(searchSecondNAV(fundCode, (year) + ""));
-                    break;
-                case 10: case 11:case 12:
-                    row.setLastQuarterlyNAV(searchThirdNAV(fundCode, (year) + ""));
-                    break;
-
-            }
-            row.setCurrentDate(fundName[2]);
-            row.setCreatAt(getFoundInfo(fundCode));
-            data.add(row);
+            FUND_CODE = fundCode;
+            FUND_INFO = new FundInfo(fundCode);
+            initBaseFundInfo();
+            setFundName();
+            setCurrentNAV();
+            setCurrentMonthNAV();
+            setLastMonthNAV();
+            setCurrentMonthNAV();
+            setCreateDate();
+            setLastQuarterlyNAV();
+            ROWS.add(FUND_INFO);
 
         }
         FundInfo row2  = new FundInfo();
         row2.setFundCode(" ");
-        data.add(row2);
+        ROWS.add(row2);
         FundInfo row  = new FundInfo();
         row.setFundCode("截至时间");
         row.setFundName(YYYY_MM_DD_HH_MM_SS.format(new Date()));
-        data.add(row);
+        ROWS.add(row);
         String format = new SimpleDateFormat("yyyy-MM-dd-HH_mm_ss").format(new Date());
         // 写入excel文件
         EasyExcel.write(DATA_PATH_NAME.concat(format).concat(".xlsx"),FundInfo.class)
                 .registerWriteHandler(new MyCellStyleHandler())
                 .sheet("sheet1")
-                .doWrite(data);
+                .doWrite(ROWS);
+    }
+
+    private static void setLastQuarterlyNAV() {
+        switch (CURRENT_MONTH){
+            case 1: case 2: case 3:
+                setFourthNAV();
+                break;
+            case 4: case 5: case 6:
+                setFirstNAV();
+                break;
+            case 7: case 8: case 9:
+               setSecondNAV();
+                break;
+            case 10: case 11: case 12:
+                setThirdNAV();
+                break;
+        }
     }
 
     // 计算第1季度的涨幅
-    public static void searchFirstNAV() {
+    public static void setFirstNAV() {
 
         try {
-            FUND_INFO.setLastQuarterlyNAV(searchFundNAV(SIMPLE_DATE_FORMAT.parse(CURRENT_YEAR+ "" + FIRST_START), SIMPLE_DATE_FORMAT.parse((CURRENT_YEAR - 1) + FIRST_END)));
+            FUND_INFO.setLastQuarterlyNAV(searchFundNAV(SIMPLE_DATE_FORMAT.parse(CURRENT_YEAR+ "" + FIRST_START), SIMPLE_DATE_FORMAT.parse(CURRENT_YEAR  + FIRST_END)));
         } catch (ParseException e) {
             e.printStackTrace();
             FUND_INFO.setLastQuarterlyNAV("-");
         }
     }
     // 计算第2季度的涨幅
-    public static void searchSecondNAV() {
+    public static void setSecondNAV() {
 
         try {
             FUND_INFO.setLastQuarterlyNAV(searchFundNAV(SIMPLE_DATE_FORMAT.parse(CURRENT_YEAR + SECOND_START), SIMPLE_DATE_FORMAT.parse(CURRENT_YEAR + SECOND_END)));
@@ -204,7 +188,7 @@ public class Boot {
         }
     }
     // 计算第3季度的涨幅
-    public static void searchThirdNAV() {
+    public static void setThirdNAV() {
 
         try {
            FUND_INFO.setLastQuarterlyNAV(searchFundNAV(SIMPLE_DATE_FORMAT.parse(CURRENT_YEAR + THIRD_START), SIMPLE_DATE_FORMAT.parse(CURRENT_YEAR + THIRD_END)));
@@ -214,10 +198,10 @@ public class Boot {
         }
     }
     // 计算第4季度的涨幅
-    public static void searchFourthNAV() {
+    public static void setFourthNAV() {
 
         try {
-            FUND_INFO.setLastQuarterlyNAV(searchFundNAV(SIMPLE_DATE_FORMAT.parse(CURRENT_YEAR + FOURTH_START), SIMPLE_DATE_FORMAT.parse(CURRENT_YEAR + FOURTH_END)));
+            FUND_INFO.setLastQuarterlyNAV(searchFundNAV(SIMPLE_DATE_FORMAT.parse((CURRENT_YEAR-1) + FOURTH_START), SIMPLE_DATE_FORMAT.parse((CURRENT_YEAR-1) + FOURTH_END)));
         } catch (ParseException e) {
             e.printStackTrace();
             FUND_INFO.setLastQuarterlyNAV("-");
@@ -225,7 +209,7 @@ public class Boot {
     }
 
     // 计算本月涨幅
-    public static void searchCurrentMonthNAV() {
+    public static void setCurrentMonthNAV() {
         // 本月起始
         Calendar thisMonthFirstDateCal = Calendar.getInstance();
         thisMonthFirstDateCal.set(Calendar.DAY_OF_MONTH, 1);
@@ -238,7 +222,7 @@ public class Boot {
     }
 
     // 计算上一个月涨幅
-    public static void searchLastMonthNAV() {
+    public static void setLastMonthNAV() {
         Calendar start  = Calendar.getInstance();
         start.add(Calendar.MONTH,-1);
         start.set(Calendar.DAY_OF_MONTH,1);
@@ -288,6 +272,7 @@ public class Boot {
 
     // https://fundsuggest.eastmoney.com/FundSearch/api/FundSearchAPI.ashx?m=1&key=002190&_=1636467561122
     // 查询基金名称和当日净值  返回值  第一个位置：基金名  第二位置：基金当日净值  第三个位置：净值日期
+    @Deprecated
     private static String[] searchFundNameAndNAVByFundCode(String fundCode) {
 
         if (StringUtils.isBlank(fundCode)) {
@@ -347,15 +332,33 @@ public class Boot {
         return s.split(",");
     }
 
-    private static void setCreateDate(FundInfo fundInfo){
+    private static void setCreateDate(){
 
         Elements infoOfFund = FUND_INFO_HTML_DOCUMENT.getElementsByClass("infoOfFund");
         Element element = infoOfFund.get(0);
         Elements trs = element.getElementsByTag("tr");
         Element tr = trs.get(1);
         Element td = tr.getElementsByTag("td").get(0);
-        fundInfo.setCreatAt(td.text().split("：")[1]);
+        FUND_INFO.setCreatAt(td.text().split("：")[1]);
 
+    }
+    private static void setCurrentNAV(){
+        Elements infoOfFund = FUND_INFO_HTML_DOCUMENT.getElementsByClass("dataItem02");
+        Element element = infoOfFund.get(0);
+        Element p = element.getElementsByTag("dt").get(0).getElementsByTag("p").get(0);
+        Elements span = p.getElementsByTag("span");
+        span.remove();
+        FUND_INFO.setCurrentDate(p.text().replaceAll("\\)",""));
+
+        Element nav = element.getElementsByTag("dd").get(0).getElementsByTag("span").get(0);
+        FUND_INFO.setCurrentNAV(nav.text());
+
+    }
+    private static void setFundName(){
+        Elements infoOfFund = FUND_INFO_HTML_DOCUMENT.getElementsByClass("fundDetail-tit");
+        Element div = infoOfFund.get(0).getElementsByTag("div").get(0);
+        div.getElementsByTag("span").remove();
+        FUND_INFO.setFundName(div.text());
     }
 
     private static void initBaseFundInfo(){
