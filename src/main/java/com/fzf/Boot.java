@@ -9,12 +9,9 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import org.omg.CORBA.OMGVMCID;
 
 import java.io.*;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -41,6 +38,14 @@ public class Boot {
     static final Map<String, String> HEADER = new HashMap<>();
 
     static  final  List<List<String>> TABLE_HEAD = new ArrayList<>();
+
+    static Document FUND_INFO_HTML_DOCUMENT;
+
+    static String FUND_CODE;
+
+    static int CURRENT_YEAR;
+
+    static FundInfo FUND_INFO;
 
     // 区分季度
     static final String FIRST_START = "-01-01";
@@ -97,7 +102,9 @@ public class Boot {
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
-
+        Calendar instance = Calendar.getInstance();
+        // 获取今年的年份 例如 ：2021
+        CURRENT_YEAR = instance.get(Calendar.YEAR);
     }
 
 
@@ -116,7 +123,7 @@ public class Boot {
         List<FundInfo> data = new ArrayList<>();
         // 遍历基金代码
         for (String fundCode : fundCodes) {
-            FundInfo row = new FundInfo();
+            FundInfo row = new FundInfo(fundCode);
             // 查询 基金名称 当日净值
             String[] fundName = searchFundNameAndNAVByFundCode(fundCode);
 
@@ -177,48 +184,48 @@ public class Boot {
     }
 
     // 计算第1季度的涨幅
-    public static String searchFirstNAV(String fundCode, String year) {
+    public static void searchFirstNAV() {
 
         try {
-            return searchFundNAV(fundCode, SIMPLE_DATE_FORMAT.parse(year + FIRST_START), SIMPLE_DATE_FORMAT.parse(year + FIRST_END));
+            FUND_INFO.setLastQuarterlyNAV(searchFundNAV(SIMPLE_DATE_FORMAT.parse(CURRENT_YEAR+ "" + FIRST_START), SIMPLE_DATE_FORMAT.parse((CURRENT_YEAR - 1) + FIRST_END)));
         } catch (ParseException e) {
             e.printStackTrace();
-            return "-";
+            FUND_INFO.setLastQuarterlyNAV("-");
         }
     }
     // 计算第2季度的涨幅
-    public static String searchSecondNAV(String fundCode, String year) {
+    public static void searchSecondNAV() {
 
         try {
-            return searchFundNAV(fundCode, SIMPLE_DATE_FORMAT.parse(year + SECOND_START), SIMPLE_DATE_FORMAT.parse(year + SECOND_END));
+            FUND_INFO.setLastQuarterlyNAV(searchFundNAV(SIMPLE_DATE_FORMAT.parse(CURRENT_YEAR + SECOND_START), SIMPLE_DATE_FORMAT.parse(CURRENT_YEAR + SECOND_END)));
         } catch (ParseException e) {
             e.printStackTrace();
-            return "-";
+            FUND_INFO.setLastQuarterlyNAV("-");
         }
     }
     // 计算第3季度的涨幅
-    public static String searchThirdNAV(String fundCode, String year) {
+    public static void searchThirdNAV() {
 
         try {
-            return searchFundNAV(fundCode, SIMPLE_DATE_FORMAT.parse(year + THIRD_START), SIMPLE_DATE_FORMAT.parse(year + THIRD_END));
+           FUND_INFO.setLastQuarterlyNAV(searchFundNAV(SIMPLE_DATE_FORMAT.parse(CURRENT_YEAR + THIRD_START), SIMPLE_DATE_FORMAT.parse(CURRENT_YEAR + THIRD_END)));
         } catch (ParseException e) {
             e.printStackTrace();
-            return "-";
+            FUND_INFO.setLastQuarterlyNAV("-");
         }
     }
     // 计算第4季度的涨幅
-    public static String searchFourthNAV(String fundCode, String year) {
+    public static void searchFourthNAV() {
 
         try {
-            return searchFundNAV(fundCode, SIMPLE_DATE_FORMAT.parse(year + FOURTH_START), SIMPLE_DATE_FORMAT.parse(year + FOURTH_END));
+            FUND_INFO.setLastQuarterlyNAV(searchFundNAV(SIMPLE_DATE_FORMAT.parse(CURRENT_YEAR + FOURTH_START), SIMPLE_DATE_FORMAT.parse(CURRENT_YEAR + FOURTH_END)));
         } catch (ParseException e) {
             e.printStackTrace();
-            return "-";
+            FUND_INFO.setLastQuarterlyNAV("-");
         }
     }
 
     // 计算本月涨幅
-    public static String searchCurrentMonthNAV(String fundCode) {
+    public static void searchCurrentMonthNAV() {
         // 本月起始
         Calendar thisMonthFirstDateCal = Calendar.getInstance();
         thisMonthFirstDateCal.set(Calendar.DAY_OF_MONTH, 1);
@@ -227,23 +234,22 @@ public class Boot {
         Calendar thisMonthEndDateCal = Calendar.getInstance();
         thisMonthEndDateCal.set(Calendar.DAY_OF_MONTH, thisMonthEndDateCal.getActualMaximum(Calendar.DAY_OF_MONTH));
 
-        return searchFundNAV(fundCode, thisMonthFirstDateCal.getTime(), thisMonthEndDateCal.getTime());
+        FUND_INFO.setCurrentMonthNAV( searchFundNAV(thisMonthFirstDateCal.getTime(), thisMonthEndDateCal.getTime()));
     }
 
     // 计算上一个月涨幅
-    public static String searchLastMonthNAV(String fundCode) {
+    public static void searchLastMonthNAV() {
         Calendar start  = Calendar.getInstance();
         start.add(Calendar.MONTH,-1);
         start.set(Calendar.DAY_OF_MONTH,1);
         Calendar end  = Calendar.getInstance();
         end.set(Calendar.DAY_OF_MONTH,0);
-
-        return searchFundNAV(fundCode, start.getTime(), end.getTime());
+        FUND_INFO.setLastMonthNAV(searchFundNAV(start.getTime(), end.getTime()));
     }
 
 
 //    计算两个日期之间的涨幅
-    public static String searchFundNAV(String fundCode, Date startDate, Date endDate) {
+    public static String searchFundNAV(Date startDate, Date endDate) {
         String startDateStr = SIMPLE_DATE_FORMAT.format(startDate);
         String endDateStr = SIMPLE_DATE_FORMAT.format(endDate);
         Calendar start = Calendar.getInstance();
@@ -253,7 +259,7 @@ public class Boot {
 
         int reduceDay = end.get(Calendar.DAY_OF_YEAR) - start.get(Calendar.DAY_OF_YEAR);
         Map<String, String> param = new HashMap<>();
-        param.put("fundCode", fundCode);
+        param.put("fundCode", FUND_CODE);
         param.put("pageSize", reduceDay + "");
         param.put("pageIndex", "1");
         param.put("startDate", startDateStr);
@@ -341,18 +347,21 @@ public class Boot {
         return s.split(",");
     }
 
-    private static String getFoundInfo(String fundCode){
+    private static void setCreateDate(FundInfo fundInfo){
 
-        String url = FUND_INFO_PAGE_URL.concat(fundCode).concat(".html").concat("?spm=search");
-        String  htmlStr= OkHttpUtils.get(url, null);
-        Document document = Jsoup.parse(htmlStr);
-        Elements infoOfFund = document.getElementsByClass("infoOfFund");
+        Elements infoOfFund = FUND_INFO_HTML_DOCUMENT.getElementsByClass("infoOfFund");
         Element element = infoOfFund.get(0);
         Elements trs = element.getElementsByTag("tr");
         Element tr = trs.get(1);
         Element td = tr.getElementsByTag("td").get(0);
-        return td.text().split("：")[1];
+        fundInfo.setCreatAt(td.text().split("：")[1]);
 
+    }
+
+    private static void initBaseFundInfo(){
+        String url = FUND_INFO_PAGE_URL.concat(FUND_CODE).concat(".html").concat("?spm=search");
+        String  htmlStr= OkHttpUtils.get(url, null);
+        FUND_INFO_HTML_DOCUMENT = Jsoup.parse(htmlStr);
     }
 
 }

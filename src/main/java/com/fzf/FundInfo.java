@@ -12,8 +12,9 @@ import com.alibaba.excel.enums.poi.HorizontalAlignmentEnum;
 public class FundInfo {
 
     private static final short HEAD_FONT_SIZE = 11;
-
-
+    FundInfo(String fundCode){
+        this.fundCode = fundCode;
+    }
 
     @ExcelProperty("基金代码")
     @ColumnWidth(15)
