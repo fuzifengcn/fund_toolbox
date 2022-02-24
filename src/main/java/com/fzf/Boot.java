@@ -1,15 +1,22 @@
 package com.fzf;
 
 import com.alibaba.excel.EasyExcel;
+import com.alibaba.excel.metadata.data.WriteCellData;
+import com.alibaba.excel.util.BooleanUtils;
+import com.alibaba.excel.write.handler.CellWriteHandler;
+import com.alibaba.excel.write.handler.context.CellWriteHandlerContext;
+import com.alibaba.excel.write.metadata.style.WriteCellStyle;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.poi.ss.usermodel.*;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import javax.sound.midi.Soundbank;
 import java.io.*;
 import java.math.BigDecimal;
 import java.text.ParseException;
@@ -38,6 +45,8 @@ public class Boot {
 
     static String FUND_CODE;
 
+    static boolean DEBUG = false;
+
     static int CURRENT_YEAR;
     static int CURRENT_MONTH;
     static String LAST_QUARTERLY_START;
@@ -45,6 +54,7 @@ public class Boot {
     static String LAST_MONTH_START;
     static String CURRENT_MONTH_START;
     static String LAST_MONTH_END;
+    static String LAST_DAY_NAV;
 
     static FundInfo FUND_INFO;
     static final String[] QUARTERLY_START_MAPPER = new String[4];
@@ -92,16 +102,18 @@ public class Boot {
         if (!dataPath.exists()) {
             dataPath.mkdirs();
         }
-        File file = new File(LOG_PATH_NAME);
-        if (!file.exists()) {
-            file.mkdirs();
-        }
-        try {
-            PrintStream out = new PrintStream(new FileOutputStream(LOG_FILE_NAME));
-            System.setOut(out);
-            System.setErr(out);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
+        if(!DEBUG){
+            File file = new File(LOG_PATH_NAME);
+            if (!file.exists()) {
+                file.mkdirs();
+            }
+            try {
+                PrintStream out = new PrintStream(new FileOutputStream(LOG_FILE_NAME));
+                System.setOut(out);
+                System.setErr(out);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
         }
 
     }
@@ -138,6 +150,7 @@ public class Boot {
         if (StringUtils.isNotBlank(responseStr)) {
             JSONArray jsonArray = JSON.parseObject(responseStr).getJSONObject("Data").getJSONArray("LSJZList");
             if (jsonArray != null && jsonArray.size() > 0) {
+                LAST_DAY_NAV = jsonArray.getJSONObject(0).getString("JZZZL");
                 for (int i = 0; i < jsonArray.size(); i++) {
                     JSONObject jsonObject = jsonArray.getJSONObject(i);
                     String dateStr = jsonObject.getString("FSRQ");
@@ -189,6 +202,7 @@ public class Boot {
             initBaseFundInfo();
             setFundName();
             setCurrentNAV();
+            setCurrentLastDayNAV();
             setCurrentMonthNAV();
             setLastMonthNAV();
             setCurrentMonthNAV();
@@ -197,6 +211,7 @@ public class Boot {
             ROWS.add(FUND_INFO);
 
         }
+        sort();
         FundInfo row2 = new FundInfo();
         row2.setFundCode(" ");
         ROWS.add(row2);
@@ -206,11 +221,27 @@ public class Boot {
         ROWS.add(row);
         String format = new SimpleDateFormat("yyyy-MM-dd-HH_mm_ss").format(new Date());
         // 写入excel文件
-        EasyExcel.write(DATA_PATH_NAME.concat(format).concat(".xlsx"), FundInfo.class)
+        EasyExcel.write(DATA_PATH_NAME.concat(format).concat(".xls"), FundInfo.class)
                 .registerWriteHandler(new MyCellStyleHandler())
                 .sheet("sheet1")
                 .doWrite(ROWS);
     }
+
+    private static void sort(){
+        ROWS.sort((o1, o2) -> {
+            if (o1.getCurrentNAV() == null || "".equals(o1.getCurrentNAV())) {
+                return -1;
+            }
+            if (o2.getCurrentNAV() == null || "".equals(o2.getCurrentNAV()) ){
+                return 1;
+            }
+            return -(new BigDecimal(o1.getCurrentNAV()).compareTo(new BigDecimal(o2.getCurrentNAV())));
+        });
+    }
+    private static void setCurrentLastDayNAV() {
+        FUND_INFO.setLastDayNAV(LAST_DAY_NAV);
+    }
+
     // 获取成立日期
     private static void setCreateDate() {
         Elements infoOfFund = FUND_INFO_HTML_DOCUMENT.getElementsByClass("infoOfFund");
@@ -233,7 +264,7 @@ public class Boot {
             Element nav = element.getElementsByTag("dd").get(0).getElementsByTag("span").get(0);
             FUND_INFO.setCurrentNAV(nav.text());
         } else {
-            FUND_INFO.setCurrentNAV("基金异常");
+            FUND_INFO.setRemarkInfo("基金异常");
         }
     }
     // 获取基金名称
