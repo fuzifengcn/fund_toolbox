@@ -3,6 +3,9 @@ package com.fzf;
 import com.alibaba.excel.util.BooleanUtils;
 import com.alibaba.excel.write.handler.CellWriteHandler;
 import com.alibaba.excel.write.handler.context.CellWriteHandlerContext;
+import org.apache.poi.hssf.usermodel.HSSFPalette;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.hssf.util.HSSFColor;
 import org.apache.poi.ss.usermodel.*;
 
 import java.math.BigDecimal;
@@ -23,7 +26,7 @@ public class MyCellStyleHandler implements CellWriteHandler {
         }
         String stringCellValue = cell.getStringCellValue();
         if (BooleanUtils.isNotTrue(context.getHead())) {
-            if ("".equals(stringCellValue) || stringCellValue == null) {
+            if ("".equals(stringCellValue) || stringCellValue == null ) {
                 return;
             }
             context.getFirstCellData().setWriteCellStyle(null);
@@ -85,7 +88,10 @@ public class MyCellStyleHandler implements CellWriteHandler {
         CellStyle currentNavBackground = styleMap.get("currentNavBackground");
         if (currentNavBackground == null) {
             CellStyle cellStyle = workbook.createCellStyle();
-            Font font = workbook.createFont();
+            HSSFWorkbook hssfWorkbook = (HSSFWorkbook) workbook;
+            HSSFPalette customPalette = hssfWorkbook.getCustomPalette();
+            customPalette.setColorAtIndex(IndexedColors.GREEN.index,(byte)0,(byte)204,(byte)0);
+            Font font = MyCellStyleHandler.workbook.createFont();
             font.setFontName("Times New Roman");
             cellStyle.setFillForegroundColor(IndexedColors.GREEN.getIndex());
             cellStyle.setAlignment(HorizontalAlignment.CENTER);

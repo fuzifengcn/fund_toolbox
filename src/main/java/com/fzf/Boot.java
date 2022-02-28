@@ -312,7 +312,7 @@ public class Boot {
                     .setScale(2, BigDecimal.ROUND_DOWN);
             return nav.toString();
         }else{
-            return "-";
+            return "";
         }
     }
 
