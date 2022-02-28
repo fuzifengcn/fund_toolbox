@@ -1,11 +1,10 @@
-package com.fzf;
+package com.fzf.oop.classic;
 
 import com.alibaba.excel.util.BooleanUtils;
 import com.alibaba.excel.write.handler.CellWriteHandler;
 import com.alibaba.excel.write.handler.context.CellWriteHandlerContext;
 import org.apache.poi.hssf.usermodel.HSSFPalette;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.hssf.util.HSSFColor;
 import org.apache.poi.ss.usermodel.*;
 
 import java.math.BigDecimal;
@@ -14,8 +13,8 @@ import java.util.Map;
 
 public class MyCellStyleHandler implements CellWriteHandler {
 
-    static Workbook workbook;
-    static Map<String, CellStyle> styleMap = new HashMap<>();
+    Workbook workbook;
+    Map<String, CellStyle> styleMap = new HashMap<>();
 
     @Override
     public void afterCellDispose(CellWriteHandlerContext context) {
@@ -91,7 +90,7 @@ public class MyCellStyleHandler implements CellWriteHandler {
             HSSFWorkbook hssfWorkbook = (HSSFWorkbook) workbook;
             HSSFPalette customPalette = hssfWorkbook.getCustomPalette();
             customPalette.setColorAtIndex(IndexedColors.GREEN.index,(byte)0,(byte)204,(byte)0);
-            Font font = MyCellStyleHandler.workbook.createFont();
+            Font font = workbook.createFont();
             font.setFontName("Times New Roman");
             cellStyle.setFillForegroundColor(IndexedColors.GREEN.getIndex());
             cellStyle.setAlignment(HorizontalAlignment.CENTER);

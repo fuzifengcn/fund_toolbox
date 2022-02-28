@@ -1,25 +1,24 @@
-package com.fzf;
+package com.fzf.oop.classic;
 
 
 import com.alibaba.excel.annotation.ExcelProperty;
-import com.alibaba.excel.annotation.write.style.*;
+import com.alibaba.excel.annotation.write.style.ColumnWidth;
+import com.alibaba.excel.annotation.write.style.ContentStyle;
+import com.alibaba.excel.annotation.write.style.HeadFontStyle;
+import com.alibaba.excel.annotation.write.style.HeadStyle;
 import com.alibaba.excel.enums.BooleanEnum;
 import com.alibaba.excel.enums.poi.HorizontalAlignmentEnum;
 
-public class FundInfo {
+public class ClassicFundInfo {
 
     private static final short HEAD_FONT_SIZE = 10;
     private static final String HEADER_FONT_NAME = "Times New Roman";
 
-    FundInfo(String fundCode){
-        this.fundCode = fundCode;
-        this.remarkInfo = "";
-    }
-    FundInfo(){
+    ClassicFundInfo(){
         this.remarkInfo = "";
     }
 
-    @ExcelProperty("基金代码")
+    @ExcelProperty(value = "基金代码",index = 0)
     @ColumnWidth(15)
     @HeadStyle(horizontalAlignment = HorizontalAlignmentEnum.CENTER)
     @HeadFontStyle(fontHeightInPoints = HEAD_FONT_SIZE,bold = BooleanEnum.TRUE,fontName = HEADER_FONT_NAME)
@@ -27,40 +26,40 @@ public class FundInfo {
     private String fundCode;
 
     @ColumnWidth(50)
-    @ExcelProperty("基金名称")
+    @ExcelProperty(value = "基金名称",index = 1)
     private String fundName;
 
     @ColumnWidth(25)
-    @ExcelProperty("成立日期")
+    @ExcelProperty(value = "成立日期")
     @HeadStyle(horizontalAlignment = HorizontalAlignmentEnum.CENTER)
     private String creatAt;
 
     @ColumnWidth(15)
-    @ExcelProperty("当日净值")
+    @ExcelProperty(value = "当日净值")
     private String currentNAV;
 
     @ColumnWidth(20)
-    @ExcelProperty("前日净值涨幅（%）")
+    @ExcelProperty(value = "前日净值涨幅（%）")
     private String lastDayNAV;
 
     @ColumnWidth(20)
-    @ExcelProperty("当月净值涨幅（%）")
+    @ExcelProperty(value = "当月净值涨幅（%）")
     private String currentMonthNAV;
 
     @ColumnWidth(20)
-    @ExcelProperty("上月净值涨幅（%）")
+    @ExcelProperty(value = "上月净值涨幅（%）")
     private String lastMonthNAV;
 
     @ColumnWidth(24)
-    @ExcelProperty("上季度净值涨幅（%）")
+    @ExcelProperty(value = "上季度净值涨幅（%）")
     private String lastQuarterlyNAV;
-
-    @ColumnWidth(13)
-    @ExcelProperty("当日净值时间")
-    private String currentDate;
+//
+//    @ColumnWidth(13)
+//    @ExcelProperty(value = "当日净值时间")
+//    private String currentDate;
 
     @ColumnWidth(20)
-    @ExcelProperty("备注")
+    @ExcelProperty(value = "备注")
     private String remarkInfo;
 
 
@@ -102,14 +101,6 @@ public class FundInfo {
 
     public void setLastQuarterlyNAV(String lastQuarterlyNAV) {
         this.lastQuarterlyNAV = lastQuarterlyNAV;
-    }
-
-    public String getCurrentDate() {
-        return currentDate;
-    }
-
-    public void setCurrentDate(String currentDate) {
-        this.currentDate = currentDate;
     }
 
     public String getCurrentMonthNAV() {

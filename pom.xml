@@ -59,7 +59,7 @@
                             <archive>
                                 <manifest>
                                     <mainClass>
-                                        com.fzf.Boot
+                                        com.fzf.oop.Launcher
                                     </mainClass>
                                 </manifest>
                             </archive>
