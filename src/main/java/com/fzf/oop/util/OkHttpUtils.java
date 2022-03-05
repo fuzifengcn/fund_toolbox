@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -82,6 +83,8 @@ public class OkHttpUtils {
             Response response = okHttpClient.newCall(request).execute();
             if(response != null && response.isSuccessful()){
                 body = response.body();
+                byte[] bytes = body.bytes();
+                System.out.println(new String(bytes, StandardCharsets.ISO_8859_1));
                 if (body != null) {
                     return body.string();
                 }

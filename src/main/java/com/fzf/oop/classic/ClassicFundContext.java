@@ -9,9 +9,9 @@ import java.util.Date;
 import java.util.List;
 
 public class ClassicFundContext extends FundContext<ClassicFundInfo> {
-    static final List<BaseFundHistoryNavInfo> QUARTERLY_DATA_LIST = new ArrayList<>();
-    static final List<BaseFundHistoryNavInfo> LAST_MONTH_DATA_LIST = new ArrayList<>();
-    static final List<BaseFundHistoryNavInfo> CURRENT_MONTH_DATA_LIST = new ArrayList<>();
+      List<BaseFundHistoryNavInfo> QUARTERLY_DATA_LIST;
+      List<BaseFundHistoryNavInfo> LAST_MONTH_DATA_LIST ;
+      List<BaseFundHistoryNavInfo> CURRENT_MONTH_DATA_LIST;
 
 
     public ClassicFundContext(FundContextRuntimeConfig contextRuntimeConfig, FundDataSource fundDataSource) {
@@ -42,17 +42,21 @@ public class ClassicFundContext extends FundContext<ClassicFundInfo> {
 
     @Override
     protected List<ClassicFundInfo> processData(BaseFundInfo baseFundInfo, List<BaseFundHistoryNavInfo> navInfos) {
+        CURRENT_MONTH_DATA_LIST = new ArrayList<>();
+        LAST_MONTH_DATA_LIST = new ArrayList<>();
+        QUARTERLY_DATA_LIST = new ArrayList<>();
         List<ClassicFundInfo> result = new ArrayList<>();
         spiltHistoryNavList(navInfos);
         ClassicFundInfo fundInfo = new ClassicFundInfo();
-        fundInfo.setFundName(baseFundInfo.getFundName());
-        fundInfo.setCurrentNAV(baseFundInfo.getCurrentDayNav());
         fundInfo.setFundCode(baseFundInfo.getFundCode());
-        fundInfo.setLastDayNAV(navInfos.get(0).getNavValue());
+        fundInfo.setFundName(baseFundInfo.getFundName());
         fundInfo.setCreatAt(baseFundInfo.getFundCreatedAt());
-        fundInfo.setLastQuarterlyNAV(getNav(QUARTERLY_DATA_LIST));
+        fundInfo.setCurrentNAV(baseFundInfo.getCurrentDayNav());
+        fundInfo.setLastDayNAV(navInfos.get(0).getDailyGrowth());
         fundInfo.setCurrentMonthNAV(getNav(CURRENT_MONTH_DATA_LIST));
         fundInfo.setLastMonthNAV(getNav(LAST_MONTH_DATA_LIST));
+        fundInfo.setLastQuarterlyNAV(getNav(QUARTERLY_DATA_LIST));
+        fundInfo.setCurrentDate("");
         result.add(fundInfo);
         return result;
     }

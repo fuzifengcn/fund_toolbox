@@ -53,10 +53,10 @@ public class ClassicFundInfo {
     @ColumnWidth(24)
     @ExcelProperty(value = "上季度净值涨幅（%）")
     private String lastQuarterlyNAV;
-//
-//    @ColumnWidth(13)
-//    @ExcelProperty(value = "当日净值时间")
-//    private String currentDate;
+
+    @ColumnWidth(13)
+    @ExcelProperty(value = "当日净值时间")
+    private String currentDate;
 
     @ColumnWidth(20)
     @ExcelProperty(value = "备注")
@@ -125,6 +125,14 @@ public class ClassicFundInfo {
 
     public void setLastDayNAV(String lastDayNAV) {
         this.lastDayNAV = lastDayNAV;
+    }
+
+    public String getCurrentDate() {
+        return currentDate;
+    }
+
+    public void setCurrentDate(String currentDate) {
+        this.currentDate = currentDate;
     }
 
     public String getRemarkInfo() {

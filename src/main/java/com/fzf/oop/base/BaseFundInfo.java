@@ -6,6 +6,7 @@ public class BaseFundInfo {
     private String fundName;
     private String fundCreatedAt;
     private String currentDayNav;
+    private String currentDate;
 
 
     public String getFundCode() {
@@ -38,5 +39,13 @@ public class BaseFundInfo {
 
     public void setCurrentDayNav(String currentDayNav) {
         this.currentDayNav = currentDayNav;
+    }
+
+    public String getCurrentDate() {
+        return currentDate;
+    }
+
+    public void setCurrentDate(String currentDate) {
+        this.currentDate = currentDate;
     }
 }
