@@ -9,9 +9,9 @@ import java.util.Date;
 import java.util.List;
 
 public class ClassicFundContext extends FundContext<ClassicFundInfo> {
-      List<BaseFundHistoryNavInfo> QUARTERLY_DATA_LIST;
-      List<BaseFundHistoryNavInfo> LAST_MONTH_DATA_LIST ;
-      List<BaseFundHistoryNavInfo> CURRENT_MONTH_DATA_LIST;
+    List<BaseFundHistoryNavInfo> QUARTERLY_DATA_LIST;
+    List<BaseFundHistoryNavInfo> LAST_MONTH_DATA_LIST;
+    List<BaseFundHistoryNavInfo> CURRENT_MONTH_DATA_LIST;
 
 
     public ClassicFundContext(FundContextRuntimeConfig contextRuntimeConfig, FundDataSource fundDataSource) {
@@ -39,7 +39,6 @@ public class ClassicFundContext extends FundContext<ClassicFundInfo> {
     }
 
 
-
     @Override
     protected List<ClassicFundInfo> processData(BaseFundInfo baseFundInfo, List<BaseFundHistoryNavInfo> navInfos) {
         CURRENT_MONTH_DATA_LIST = new ArrayList<>();
@@ -48,16 +47,21 @@ public class ClassicFundContext extends FundContext<ClassicFundInfo> {
         List<ClassicFundInfo> result = new ArrayList<>();
         spiltHistoryNavList(navInfos);
         ClassicFundInfo fundInfo = new ClassicFundInfo();
-        fundInfo.setFundCode(baseFundInfo.getFundCode());
-        fundInfo.setFundName(baseFundInfo.getFundName());
-        fundInfo.setCreatAt(baseFundInfo.getFundCreatedAt());
-        fundInfo.setCurrentNAV(baseFundInfo.getCurrentDayNav());
-        fundInfo.setLastDayNAV(navInfos.get(0).getDailyGrowth());
-        fundInfo.setCurrentMonthNAV(getNav(CURRENT_MONTH_DATA_LIST));
-        fundInfo.setLastMonthNAV(getNav(LAST_MONTH_DATA_LIST));
-        fundInfo.setLastQuarterlyNAV(getNav(QUARTERLY_DATA_LIST));
-        fundInfo.setCurrentDate("");
-        result.add(fundInfo);
+        try {
+            fundInfo.setFundCode(baseFundInfo.getFundCode());
+            fundInfo.setFundName(baseFundInfo.getFundName());
+            fundInfo.setCreatAt(baseFundInfo.getFundCreatedAt());
+            fundInfo.setCurrentNAV(baseFundInfo.getCurrentDayNav());
+            fundInfo.setLastDayNAV(navInfos.get(0).getDailyGrowth());
+            fundInfo.setCurrentMonthNAV(getNav(CURRENT_MONTH_DATA_LIST));
+            fundInfo.setLastMonthNAV(getNav(LAST_MONTH_DATA_LIST));
+            fundInfo.setLastQuarterlyNAV(getNav(QUARTERLY_DATA_LIST));
+            fundInfo.setCurrentDate(baseFundInfo.getCurrentDate());
+            result.add(fundInfo);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("error111:" + baseFundInfo.getFundCode());
+        }
         return result;
     }
 
@@ -67,15 +71,15 @@ public class ClassicFundContext extends FundContext<ClassicFundInfo> {
             if (o1.getCurrentNAV() == null || "".equals(o1.getCurrentNAV())) {
                 return -1;
             }
-            if (o2.getCurrentNAV() == null || "".equals(o2.getCurrentNAV()) ){
+            if (o2.getCurrentNAV() == null || "".equals(o2.getCurrentNAV())) {
                 return 1;
             }
             return -(new BigDecimal(o1.getCurrentNAV()).compareTo(new BigDecimal(o2.getCurrentNAV())));
         });
     }
 
-    private void spiltHistoryNavList(List<BaseFundHistoryNavInfo> navInfos){
-        for (BaseFundHistoryNavInfo baseFundHistoryNavInfo : navInfos){
+    private void spiltHistoryNavList(List<BaseFundHistoryNavInfo> navInfos) {
+        for (BaseFundHistoryNavInfo baseFundHistoryNavInfo : navInfos) {
             String dateTime = baseFundHistoryNavInfo.getDateTime();
             if (getLAST_QUARTERLY_START().compareTo(dateTime) <= 0
                     && getLAST_QUARTERLY_END().compareTo(dateTime) >= 0) {
@@ -91,7 +95,8 @@ public class ClassicFundContext extends FundContext<ClassicFundInfo> {
             }
         }
     }
-    private static String getNav(List<BaseFundHistoryNavInfo> navInfos){
+
+    private static String getNav(List<BaseFundHistoryNavInfo> navInfos) {
         if (navInfos.size() > 0) {
             BaseFundHistoryNavInfo max = navInfos.get(0);
             BaseFundHistoryNavInfo min = navInfos.get(navInfos.size() - 1);
@@ -103,7 +108,7 @@ public class ClassicFundContext extends FundContext<ClassicFundInfo> {
                     .multiply(new BigDecimal(100))
                     .setScale(2, BigDecimal.ROUND_DOWN);
             return nav.toString();
-        }else{
+        } else {
             return "";
         }
     }

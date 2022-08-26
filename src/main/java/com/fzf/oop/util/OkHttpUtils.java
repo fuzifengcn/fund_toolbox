@@ -83,8 +83,6 @@ public class OkHttpUtils {
             Response response = okHttpClient.newCall(request).execute();
             if(response != null && response.isSuccessful()){
                 body = response.body();
-                byte[] bytes = body.bytes();
-                System.out.println(new String(bytes, StandardCharsets.ISO_8859_1));
                 if (body != null) {
                     return body.string();
                 }
