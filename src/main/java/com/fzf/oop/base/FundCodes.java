@@ -5,7 +5,6 @@ public class FundCodes {
     private String fileName;
     private String[] fundCodes;
 
-
     public String getFileName() {
         return fileName;
     }

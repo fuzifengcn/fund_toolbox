@@ -96,7 +96,7 @@ public class ClassicFundContext extends FundContext<ClassicFundInfo> {
         }
     }
 
-    private static String getNav(List<BaseFundHistoryNavInfo> navInfos) {
+    private String getNav(List<BaseFundHistoryNavInfo> navInfos) {
         if (navInfos.size() > 0) {
             BaseFundHistoryNavInfo max = navInfos.get(0);
             BaseFundHistoryNavInfo min = navInfos.get(navInfos.size() - 1);

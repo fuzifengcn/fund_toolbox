@@ -47,7 +47,7 @@ public class TextFileFundCodeLoader {
                     e.printStackTrace();
                 }
                 String s = stringBuilder.toString()
-                        .replaceAll("\\\n", "")
+                        .replaceAll("\n", "")
                         .replaceAll("\\r\\n", "")
                         .replaceAll("，", ",").trim();
                 String[] codes = s.split(",");

@@ -15,8 +15,8 @@ import java.util.List;
 
 public abstract class FundContext<T> {
 
-    private FundContextRuntimeConfig contextRuntimeConfig;
-    private FundDataSource fundDataSource;
+    private final FundContextRuntimeConfig contextRuntimeConfig;
+    private final FundDataSource fundDataSource;
     private List<FundCodes> fundCodes;
     static final SimpleDateFormat SIMPLE_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
 
@@ -78,7 +78,6 @@ public abstract class FundContext<T> {
     public abstract Class<T> getExportEntityClass();
 
     private void exportData() {
-
         for (FundCodes fundCode : fundCodes) {
             List<T> data = new ArrayList<>();
             String[] fundCodes = fundCode.getFundCodes();

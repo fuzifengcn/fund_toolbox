@@ -7,12 +7,12 @@ import java.util.Date;
 public class FundContextRuntimeConfig {
     static final SimpleDateFormat yyMMddHHmm = new SimpleDateFormat("yyMMddHHmm");
 
-     private String CURRENT_PATH;
-     private String DATA_PATH_NAME;
-     private String LOG_PATH_NAME;
-     private String FUND_CODE_FILE_PATH;
-     private String FUND_CODE_FILE_PREFIX;
-     private boolean DEBUG;
+     private final String CURRENT_PATH;
+     private final String DATA_PATH_NAME;
+     private final String LOG_PATH_NAME;
+     private final String FUND_CODE_FILE_PATH;
+     private final String FUND_CODE_FILE_PREFIX;
+     private final boolean DEBUG;
 
     public FundContextRuntimeConfig(){
         this.CURRENT_PATH = System.getProperty("user.dir");
